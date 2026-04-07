@@ -96,12 +96,14 @@ export default function InsightED() {
             </svg>
           </span>
           <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
+            type="tel"
             maxLength={6}
-            placeholder="Employee ID (6 digits)"
+            placeholder="School ID (6 digits)"
             value={email}
+            onKeyDown={e => {
+              const allowed = ["Backspace","Delete","ArrowLeft","ArrowRight","Tab"];
+              if (!/[0-9]/.test(e.key) && !allowed.includes(e.key)) e.preventDefault();
+            }}
             onChange={handleEmailChange}
             style={{
               width: "100%", padding: "16px 16px 16px 46px",
@@ -127,15 +129,32 @@ export default function InsightED() {
               <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
           </span>
-          <input type={showPass ? "text" : "password"} placeholder="Passcode"
-            value={password} onChange={e => setPassword(e.target.value)}
+          <input
+            type="tel"
+            maxLength={6}
+            placeholder="000000"
+            value={password}
+            onKeyDown={e => {
+              const allowed = ["Backspace","Delete","ArrowLeft","ArrowRight","Tab"];
+              if (!/[0-9]/.test(e.key) && !allowed.includes(e.key)) e.preventDefault();
+            }}
+            onChange={e => setPassword(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
             style={{
-              width: "100%", padding: "16px 46px 16px 46px",
+              width: "100%", padding: "16px 60px 16px 46px",
               border: "1.5px solid #e4e7ec", borderRadius: "12px",
-              background: "#ffffff", fontSize: "15px", fontFamily: "inherit",
+              background: "#ffffff", fontSize: "24px", fontFamily: "monospace",
               color: "#1a1f36", outline: "none", boxSizing: "border-box",
+              fontWeight: 700, letterSpacing: "10px",
+              WebkitTextSecurity: showPass ? "none" : "disc",
             }}
           />
+          <span style={{
+            position: "absolute", right: "42px", top: "50%", transform: "translateY(-50%)",
+            fontSize: "11px", color: password.length === 6 ? "#22c55e" : "#cbd5e1",
+            fontWeight: 600, transition: "color 0.2s",
+          }}>
+            {password.length}/6
+          </span>
           <span onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8", display: "flex", alignItems: "center", cursor: "pointer" }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
