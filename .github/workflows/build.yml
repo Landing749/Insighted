@@ -1,0 +1,86 @@
+name: Auto Build and Deploy
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Patch package.json (homepage + scripts)
+        run: |
+          REPO_NAME="${{ github.event.repository.name }}"
+          OWNER="${{ github.repository_owner }}"
+          HOMEPAGE="https://${OWNER}.github.io/${REPO_NAME}"
+
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+
+            pkg.homepage = '${HOMEPAGE}';
+
+            pkg.scripts = pkg.scripts || {};
+            pkg.scripts.predeploy = 'npm run build';
+            pkg.scripts.deploy = 'gh-pages -d build';
+
+            const devDeps = pkg.devDependencies || {};
+            const hasDep = (pkg.dependencies || {})['gh-pages'] || devDeps['gh-pages'];
+            if (!hasDep) {
+              pkg.devDependencies = devDeps;
+              pkg.devDependencies['gh-pages'] = '^6.0.0';
+            }
+
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+            console.log('package.json patched:');
+            console.log('  homepage =>', pkg.homepage);
+            console.log('  scripts.deploy =>', pkg.scripts.deploy);
+          "
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Commit patched package.json if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --quiet package.json package-lock.json || (
+            git add package.json package-lock.json &&
+            git commit -m "ci: auto-patch homepage and deploy scripts [skip ci]" &&
+            git push
+          )
+
+      - name: Build
+        run: npm run build
+        env:
+          CI: false
+          GENERATE_SOURCEMAP: false
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
+          commit_message: "deploy: ${{ github.event.head_commit.message }}"
+          force_orphan: true
