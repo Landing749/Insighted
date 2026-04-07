@@ -34,43 +34,93 @@ jobs:
         with:
           node-version: 20
 
-      - name: Patch package.json (homepage + scripts)
+      - name: Bootstrap React app if package.json missing
         run: |
-          REPO_NAME="${{ github.event.repository.name }}"
+          if [ ! -f package.json ]; then
+            echo "No package.json — bootstrapping Create React App..."
+            npx create-react-app@latest temp-app --template cra-template
+            cp -r temp-app/public ./public
+            cp -r temp-app/src ./src-cra
+            cp temp-app/package.json ./package.json
+            rm -rf temp-app
+
+            # Copy default CRA src first (keeps index.js entry point intact)
+            cp -r src-cra ./src
+            rm -rf src-cra
+
+            # index.jsx is the user's component — use it as App.js
+            # CRA's src/index.js already imports <App /> so this just works
+            if [ -f index.jsx ]; then
+              echo "Found index.jsx — using as src/App.js"
+              cp index.jsx src/App.js
+            elif [ -f App.jsx ]; then
+              echo "Found App.jsx — using as src/App.js"
+              cp App.jsx src/App.js
+            elif [ -f index.js ]; then
+              echo "Found index.js — using as src/App.js"
+              cp index.js src/App.js
+            else
+              echo "No component file found — using CRA default App"
+            fi
+
+            # Fix: rename the default export to App if it isn't already
+            # CRA's src/index.js does: import App from './App'; so export name must be App
+            node -e "
+              const fs = require('fs');
+              let code = fs.readFileSync('src/App.js', 'utf8');
+              // Replace any 'export default FunctionName' with 'export default App'
+              // and add wrapper if needed
+              const match = code.match(/export default function (\w+)/);
+              if (match && match[1] !== 'App') {
+                code = code.replace('export default function ' + match[1], 'export default function App');
+                fs.writeFileSync('src/App.js', code);
+                console.log('Renamed export default from', match[1], 'to App');
+              } else {
+                console.log('Export default is already App or uses arrow syntax — OK');
+              }
+            "
+
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add package.json public/ src/
+            git commit -m "ci: bootstrap React app [skip ci]"
+            git push
+          else
+            echo "package.json exists — skipping bootstrap"
+          fi
+
+      - name: Patch package.json (homepage + gh-pages)
+        run: |
           OWNER="${{ github.repository_owner }}"
-          HOMEPAGE="https://${OWNER}.github.io/${REPO_NAME}"
+          REPO="${{ github.event.repository.name }}"
+          HOMEPAGE="https://${OWNER}.github.io/${REPO}"
 
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-
             pkg.homepage = '${HOMEPAGE}';
-
             pkg.scripts = pkg.scripts || {};
             pkg.scripts.predeploy = 'npm run build';
             pkg.scripts.deploy = 'gh-pages -d build';
-
-            const devDeps = pkg.devDependencies || {};
-            const hasDep = (pkg.dependencies || {})['gh-pages'] || devDeps['gh-pages'];
-            if (!hasDep) {
-              pkg.devDependencies = devDeps;
+            const dev = pkg.devDependencies || {};
+            if (!(pkg.dependencies || {})['gh-pages'] && !dev['gh-pages']) {
+              pkg.devDependencies = dev;
               pkg.devDependencies['gh-pages'] = '^6.0.0';
             }
-
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-            console.log('package.json patched — homepage:', pkg.homepage);
+            console.log('Patched homepage ->', pkg.homepage);
           "
 
       - name: Install dependencies
         run: npm install
 
-      - name: Commit patched package.json if changed
+      - name: Commit package-lock if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git diff --quiet package.json package-lock.json || (
             git add package.json package-lock.json &&
-            git commit -m "ci: auto-patch homepage and deploy scripts [skip ci]" &&
+            git commit -m "ci: update package files [skip ci]" &&
             git push
           )
 
