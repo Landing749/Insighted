@@ -1,10 +1,11 @@
 import { useState } from "react";
 
 const FIREBASE_URL = "https://forms-12c42-default-rtdb.firebaseio.com";
+const LOGO = "https://stride.deped.gov.ph/insighted/assets/InsightEd1-DQGBqvKJ.png";
 
 export default function InsightED() {
   const [showPass, setShowPass] = useState(false);
-  const [email, setEmail] = useState("232423");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("");
 
@@ -62,11 +63,11 @@ export default function InsightED() {
             background: "#f8f9fb", border: "1px solid #eaecf0",
             overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <img src="logo.png" alt="InsightED"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+            <img
+              src={LOGO}
+              alt="InsightED"
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
-            <span style={{ display: "none", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", fontSize: "9px", color: "#bbb", textAlign: "center" }}>logo.png</span>
           </div>
         </div>
 
@@ -80,7 +81,7 @@ export default function InsightED() {
               <rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,7 12,13 22,7"/>
             </svg>
           </span>
-          <input type="text" value={email} onChange={e => setEmail(e.target.value)} style={{
+          <input type="text" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email or Username" style={{
             width: "100%", padding: "16px 16px 16px 46px",
             border: "1.5px solid #e4e7ec", borderRadius: "12px",
             background: "#ffffff", fontSize: "15px", fontFamily: "inherit",
